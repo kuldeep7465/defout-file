@@ -1,0 +1,84 @@
+ Action Method:-
+
+
+public IActionResult Index(UserInfo objUser)
+        {
+
+            //WeekendCoreBatchContext DbNew = new WeekendCoreBatchContext();
+
+             var res = _db.TblUserInfos.Where(a => a.Email == objUser.Email).FirstOrDefault();
+
+            //var res = DbNew.TblUserInfos.FromSqlRaw<TblUserInfo>("UserSelect").t
+
+            if (res == null)
+            {
+
+                TempData["Invalid"] = "Email is not found";
+            }
+
+            else
+            {
+                if(res.Email == objUser.Email && objUser.Password == objUser.Password)
+                {
+
+                    var claims = new[] { new Claim(ClaimTypes.Name, res.Name),
+                                        new Claim(ClaimTypes.Email, res.Email) };
+
+                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                    var authProperties = new AuthenticationProperties
+                    {
+                        IsPersistent = true
+                    };
+                    HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(identity),
+                    authProperties);
+
+
+                    HttpContext.Session.SetString("Name", objUser.Email);
+
+                    return RedirectToAction("IndexDashBoard", "Home");
+
+                }
+
+                else
+                {
+
+                    ViewBag.Inv = "Wrong Email Id or password";
+
+                    return View("IndexTest");
+                }
+
+
+            }
+
+
+            return View("IndexTest");
+        }
+
+Logout:-
+ public IActionResult LogOut()
+        {
+            HttpContext.SignOutAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme);
+
+            return View("IndexTest");
+        }
+
+Startup file:-
+public void ConfigureServices(IServiceCollection services)
+        {
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddSession();
+
+            services.AddControllersWithViews();
+
+            services.AddDbContext<WeekendCoreBatchContext>(options => options.UseSqlServer(
+
+                Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(o => o.LoginPath = new PathString("/Home/Index"));
+        }
+app.UseAuthentication();
